@@ -70,7 +70,27 @@ Flame.View = Ember.ContainerView.extend(Flame.LayoutSupport, Flame.EventManager,
         var template = this.get('template');
         if (template) {
             // Copied from Ember.View for now
-            var output = template(this.get('templateContext'), { data: { view: this, buffer: buffer, isRenderData: true, keywords: {} } });
+            var context = get(this, '_context');
+            var keywords = this.cloneKeywords();
+
+            var data = {
+                view: this,
+                buffer: buffer,
+                isRenderData: true,
+                keywords: keywords
+            };
+
+            // Invoke the template with the provided template context, which
+            // is the view by default. A hash of data is also passed that provides
+            // the template with access to the view and render buffer.
+
+            Ember.assert('template must be a function. Did you mean to call Ember.Handlebars.compile("...") or specify templateName instead?', typeof template === 'function');
+            // The template should write directly to the render buffer instead
+            // of returning a string.
+            var output = template(context, { data: data });
+
+            // If the template returned a string instead of writing to the buffer,
+            // push the string onto the buffer.
             if (output !== undefined) { buffer.push(output); }
         } else {
             return this._super(buffer);
