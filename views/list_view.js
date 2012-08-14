@@ -19,6 +19,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
     selection: undefined,
     initialState: 'idle',
     reorderDelegate: null,
+    actOnSelect: false,
     init: function() {
         this._super();
         this._selectionDidChange();
@@ -40,6 +41,10 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
             if (childView && childView.get('isVisible') && childView.get('allowSelection') !== false) {
                 var selection = content.objectAt(index);
                 this.set('selection', selection);
+                if (this.get('actOnSelect')) {
+                    Ember.assert('When actOnSelect is true, a triggerAction method must be defined', !!this.triggerAction);
+                    this.triggerAction({actionContext: {selection: selection}});
+                }
                 return true;
             }
         }
