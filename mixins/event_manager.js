@@ -61,12 +61,12 @@ Flame.MODIFIED_KEY_BINDINGS = {
 Flame.ALLOW_BROWSER_DEFAULT_HANDLING = {};  // Just a marker value
 
 Ember.mixin(Flame, {
-    mouseResponderView: undefined, // Which view handled the last mouseDown event?
+    mouseResponderView: undefined, // Which view handled the last mouseDown/touchStart event?
 
     /*
       Holds a stack of key responder views. With this we can neatly handle restoring the previous key responder
       when some modal UI element is closed. There's a few simple rules that governs the usage of the stack:
-       - mouse click does .replace (this should also be used for programmatically taking focus when not a modal element)
+       - mouse click / touch does .replace (this should also be used for programmatically taking focus when not a modal element)
        - opening a modal UI element does .push
        - closing a modal element does .pop
 
@@ -132,18 +132,20 @@ Ember.$(document).on('keydown.sproutcore keypress.sproutcore', null, function(ev
     return true;
 });
 
-// This logic is needed so that the view that handled mouseDown will receive mouseMoves and the eventual mouseUp, even if the
-// pointer no longer is on top of that view. Without this, you get inconsistencies with buttons and all controls that handle
-// mouse click events. The sproutcore event dispatcher always first looks up 'eventManager' property on the view that's
-// receiving an event, and let's that handle the event, if defined. So this should be mixed in to all the Flame views.
+// This logic is needed so that the view that handled mouseDown/touchStart will receive mouseMoves and the eventual
+// mouseUp/touchEnd, even if the pointer no longer is on top of that view. Without this, you get inconsistencies with
+// buttons and all controls that handle mouse click / touch events. The sproutcore event dispatcher always first looks
+// up 'eventManager' property on the view that's receiving an event, and lets that handle the event, if defined.
+// So this should be mixed in to all the Flame views.
 Flame.EventManager = {
     // Set to true in your view if you want to accept key responder status (which is needed for handling key events)
     acceptsKeyResponder: false,
 
     /*
       Sets this view as the target of key events. Call this if you need to make this happen programmatically.
-      This gets also called on mouseDown if the view handles that, returns true and doesn't have property 'acceptsKeyResponder'
-      set to false. If mouseDown returned true but 'acceptsKeyResponder' is false, this call is propagated to the parent view.
+      This gets also called on mouseDown/touchStart if the view handles that, returns true and doesn't have property
+      'acceptsKeyResponder' set to false. If mouseDown/touchStart returned true but 'acceptsKeyResponder' is false,
+      this call is propagated to the parent view.
 
       If called with no parameters or with replace = true, the current key responder is first popped off the stack and this
       view is then pushed. See comments for Flame.keyResponderStack above for more insight.
@@ -194,6 +196,38 @@ Flame.EventManager = {
                 view = Flame.get('mouseResponderView');
             }
             return !this._dispatch('mouseMove', event, view);
+        },
+        touchStart: function(event, view) {
+            view.becomeKeyResponder();  // Becoming a key responder is independent of touchStart handling
+            Flame.set('mouseResponderView', undefined);
+            var handlingView = this._dispatch('touchStart', event, view);
+            if (handlingView) {
+                Flame.set('mouseResponderView', handlingView);
+            }
+            return !handlingView;
+        },
+
+        touchEnd: function(event, view) {
+            if (Flame.get('mouseResponderView') !== undefined) {
+                view = Flame.get('mouseResponderView');
+                Flame.set('mouseResponderView', undefined);
+            }
+            return !this._dispatch('touchEnd', event, view);
+        },
+
+        touchCancel: function(event, view) {
+            if (Flame.get('mouseResponderView') !== undefined) {
+                view = Flame.get('mouseResponderView');
+                Flame.set('mouseResponderView', undefined);
+            }
+            return !this._dispatch('touchCancel', event, view);
+        },
+
+        touchMove: function(event, view) {
+            if (Flame.get('mouseResponderView') !== undefined) {
+                view = Flame.get('mouseResponderView');
+            }
+            return !this._dispatch('touchMove', event, view);
         },
 
         keyDown: function(event) {
