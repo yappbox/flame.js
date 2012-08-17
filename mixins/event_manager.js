@@ -180,6 +180,11 @@ Flame.EventManager = {
             if (handlingView) {
                 Flame.set('mouseResponderView', handlingView);
             }
+            Flame.setProperties({
+                isMouseDown: true,
+                dragChecked: false,
+                mouseDownPosition: { pageX: event.pageX, pageY: event.pageY }
+            });
             return !handlingView;
         },
 
@@ -188,14 +193,46 @@ Flame.EventManager = {
                 view = Flame.get('mouseResponderView');
                 Flame.set('mouseResponderView', undefined);
             }
-            return !this._dispatch('mouseUp', event, view);
+            Flame.set('isMouseDown', false);
+            if (Flame.get('isDragging')) {
+                Flame.setProperties({
+                    isMouseDown: false,
+                    isDragging: false,
+                    mouseDownPosition: null
+                });
+                this._dispatch('dragEnd', event, view);
+                return false;
+            } else {
+                return !this._dispatch('mouseUp', event, view);
+            }
         },
 
         mouseMove: function(event, view) {
             if (Flame.get('mouseResponderView') !== undefined) {
                 view = Flame.get('mouseResponderView');
             }
-            return !this._dispatch('mouseMove', event, view);
+
+            if (Flame.get('isMouseDown')) {
+                if (!Flame.get('dragChecked')) {
+                    var mouseDownPos = Flame.get('mouseDownPosition'),
+                        thresholdExceeded = Math.abs(event.pageX - mouseDownPos.pageX) > 4 || Math.abs(event.pageY - mouseDownPos.pageY) > 4;
+                    if (thresholdExceeded) {
+                        Flame.set('dragChecked', true);
+                        var dragHandlingView = this._dispatch('dragStart', event, view);
+                        if (dragHandlingView) {
+                            Flame.set('isDragging', true);
+                        }
+                    }
+                }
+                if (Flame.get('isDragging')) {
+                    this._dispatch('dragMove', event, view);
+                    return false;
+                } else {
+                    return !this._dispatch('mouseMove', event, view);
+                }
+            } else {
+                return !this._dispatch('mouseMove', event, view);
+            }
         },
         touchStart: function(event, view) {
             view.becomeKeyResponder();  // Becoming a key responder is independent of touchStart handling
@@ -204,6 +241,14 @@ Flame.EventManager = {
             if (handlingView) {
                 Flame.set('mouseResponderView', handlingView);
             }
+            if (!event.touches) {
+                event.touches = event.originalEvent.touches;
+            }
+            Flame.setProperties({
+                isTouchStarted: true,
+                dragChecked: false,
+                touchStartPosition: { pageX: event.touches[0].pageX, pageY: event.touches[0].pageY }
+            });
             return !handlingView;
         },
 
@@ -212,7 +257,21 @@ Flame.EventManager = {
                 view = Flame.get('mouseResponderView');
                 Flame.set('mouseResponderView', undefined);
             }
-            return !this._dispatch('touchEnd', event, view);
+            if (!event.touches) {
+                event.touches = event.originalEvent.touches;
+            }
+            Flame.set('isTouchStarted', false);
+            if (Flame.get('isDragging')) {
+                Flame.setProperties({
+                    isTouchStarted: false,
+                    isDragging: false,
+                    touchStartPosition: null
+                });
+                this._dispatch('dragEnd', event, view);
+                return false;
+            } else {
+                return !this._dispatch('touchEnd', event, view);
+            }
         },
 
         touchCancel: function(event, view) {
@@ -220,14 +279,52 @@ Flame.EventManager = {
                 view = Flame.get('mouseResponderView');
                 Flame.set('mouseResponderView', undefined);
             }
-            return !this._dispatch('touchCancel', event, view);
+            if (!event.touches) {
+                event.touches = event.originalEvent.touches;
+            }
+            Flame.set('isTouchStarted', false);
+            if (Flame.get('isDragging')) {
+                Flame.setProperties({
+                    isTouchStarted: false,
+                    isDragging: false,
+                    touchStartPosition: null
+                });
+                this._dispatch('dragEnd', event, view);
+                return false;
+            } else {
+                return !this._dispatch('touchCancel', event, view);
+            }
         },
 
         touchMove: function(event, view) {
             if (Flame.get('mouseResponderView') !== undefined) {
                 view = Flame.get('mouseResponderView');
             }
-            return !this._dispatch('touchMove', event, view);
+            if (!event.touches) {
+                event.touches = event.originalEvent.touches;
+            }
+            if (Flame.get('isTouchStarted')) {
+                if (!Flame.get('dragChecked')) {
+                    var touchStartPos = Flame.get('touchStartPosition'),
+                        touches = event.originalEvent.touches,
+                        thresholdExceeded = Math.abs(event.touches[0].pageX - touchStartPos.pageX) > 4 || Math.abs(event.touches[0].pageY - touchStartPos.pageY) > 4;
+                    if (thresholdExceeded) {
+                        Flame.set('dragChecked', true);
+                        var dragHandlingView = this._dispatch('dragStart', event, view);
+                        if (dragHandlingView) {
+                            Flame.set('isDragging', true);
+                        }
+                    }
+                }
+                if (Flame.get('isDragging')) {
+                    this._dispatch('dragMove', event, view);
+                    return false;
+                } else {
+                    return !this._dispatch('touchMove', event, view);
+                }
+            } else {
+                return !this._dispatch('touchMove', event, view);
+            }
         },
 
         keyDown: function(event) {
