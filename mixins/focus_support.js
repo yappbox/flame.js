@@ -6,7 +6,8 @@ Flame.FocusSupport = {
     },
 
     didLoseKeyResponder: function() {
-        this.$().blur();
+        var $this = this.$();
+        if ($this) $this.blur();
     },
 
     focusIn: function() {
