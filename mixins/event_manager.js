@@ -200,7 +200,7 @@ Flame.EventManager = {
                     isDragging: false,
                     mouseDownPosition: null
                 });
-                this._dispatch('dragEnd', event, view);
+                this._dispatch('customDragEnd', event, view);
                 return false;
             } else {
                 return !this._dispatch('mouseUp', event, view);
@@ -218,14 +218,14 @@ Flame.EventManager = {
                         thresholdExceeded = Math.abs(event.pageX - mouseDownPos.pageX) > 4 || Math.abs(event.pageY - mouseDownPos.pageY) > 4;
                     if (thresholdExceeded) {
                         Flame.set('dragChecked', true);
-                        var dragHandlingView = this._dispatch('dragStart', event, view);
+                        var dragHandlingView = this._dispatch('customDragStart', event, view);
                         if (dragHandlingView) {
                             Flame.set('isDragging', true);
                         }
                     }
                 }
                 if (Flame.get('isDragging')) {
-                    this._dispatch('dragMove', event, view);
+                    this._dispatch('customDragMove', event, view);
                     return false;
                 } else {
                     return !this._dispatch('mouseMove', event, view);
@@ -267,7 +267,7 @@ Flame.EventManager = {
                     isDragging: false,
                     touchStartPosition: null
                 });
-                this._dispatch('dragEnd', event, view);
+                this._dispatch('customDragEnd', event, view);
                 return false;
             } else {
                 return !this._dispatch('touchEnd', event, view);
@@ -289,7 +289,7 @@ Flame.EventManager = {
                     isDragging: false,
                     touchStartPosition: null
                 });
-                this._dispatch('dragEnd', event, view);
+                this._dispatch('customDragEnd', event, view);
                 return false;
             } else {
                 return !this._dispatch('touchCancel', event, view);
@@ -310,14 +310,14 @@ Flame.EventManager = {
                         thresholdExceeded = Math.abs(event.touches[0].pageX - touchStartPos.pageX) > 4 || Math.abs(event.touches[0].pageY - touchStartPos.pageY) > 4;
                     if (thresholdExceeded) {
                         Flame.set('dragChecked', true);
-                        var dragHandlingView = this._dispatch('dragStart', event, view);
+                        var dragHandlingView = this._dispatch('customDragStart', event, view);
                         if (dragHandlingView) {
                             Flame.set('isDragging', true);
                         }
                     }
                 }
                 if (Flame.get('isDragging')) {
-                    this._dispatch('dragMove', event, view);
+                    this._dispatch('customDragMove', event, view);
                     return false;
                 } else {
                     return !this._dispatch('touchMove', event, view);
