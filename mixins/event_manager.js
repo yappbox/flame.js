@@ -220,6 +220,7 @@ Flame.EventManager = {
                         Flame.set('dragChecked', true);
                         var dragHandlingView = this._dispatch('customDragStart', event, view);
                         if (dragHandlingView) {
+                            Flame.set('mouseResponderView', dragHandlingView);
                             Flame.set('isDragging', true);
                         }
                     }
@@ -312,6 +313,7 @@ Flame.EventManager = {
                         Flame.set('dragChecked', true);
                         var dragHandlingView = this._dispatch('customDragStart', event, view);
                         if (dragHandlingView) {
+                            Flame.set('mouseResponderView', dragHandlingView);
                             Flame.set('isDragging', true);
                         }
                     }
