@@ -174,6 +174,9 @@ Flame.EventManager = {
 
     eventManager: {
         mouseDown: function(event, view) {
+            if (event.button !== 0) {
+                return true;
+            }
             view.becomeKeyResponder();  // Becoming a key responder is independent of mouseDown handling
             Flame.set('mouseResponderView', undefined);
             var handlingView = this._dispatch('mouseDown', event, view);
