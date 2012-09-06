@@ -328,7 +328,11 @@ Flame.ListViewDragHelper = Ember.Object.extend({
             }
             if (topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule an artificial mouseMove event to keep scrolling
                 var currentCounter = this.mouseMoveCounter;
-                Ember.run.next(this, function() { this.updateDisplay(evt, currentCounter); });
+                Ember.run.next(this, function() {
+                    Ember.run(this, function () {
+                        this.updateDisplay(evt, currentCounter);
+                    });
+                });
             }
         }
     }

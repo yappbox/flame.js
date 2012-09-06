@@ -100,7 +100,9 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
         var delegate = this.get('reorderDelegate');
         if (delegate) {
             Ember.run.next(function() {
-                delegate.didReorderContent(content);
+                Ember.run(function () {
+                    delegate.didReorderContent(content);
+                });
             });
         }
     },
