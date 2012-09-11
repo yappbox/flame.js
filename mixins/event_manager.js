@@ -132,6 +132,199 @@ Ember.$(document).on('keydown.sproutcore keypress.sproutcore', null, function(ev
     return true;
 });
 
+var eventManager = {
+    keyDown: function(event) {
+        if (Flame.keyResponderStack.current() !== undefined && Flame.keyResponderStack.current().get('isVisible')) {
+            return Flame.keyResponderStack.current().handleKeyEvent(event, Flame.keyResponderStack.current());
+        }
+        return true;
+    },
+
+    keyPress: function(event) {
+        if (Flame.keyResponderStack.current() !== undefined && Flame.keyResponderStack.current().get('isVisible')) {
+            return Flame.keyResponderStack.current().handleKeyEvent(event, Flame.keyResponderStack.current());
+        }
+        return true;
+    },
+
+    // For the passed in view, calls the method with the name of the event, if defined. If that method
+    // returns true, returns the view. If the method returns false, recurses on the parent view. If no
+    // view handles the event, returns false.
+    _dispatch: function(eventName, event, view) {
+        if (window.FlameInspector) FlameInspector.logEvent(event, eventName, view);
+        var handler = view.get(eventName);
+        if (handler) {
+            var result = handler.call(view, event, view);
+            if (result === Flame.ALLOW_BROWSER_DEFAULT_HANDLING) return false;
+            else if (result) return view;
+        }
+        var parentView = view.get('parentView');
+        if (parentView) return this._dispatch(eventName, event, parentView);
+        else return false;
+    }
+};
+
+if ('ontouchstart' in window) {
+    eventManager.touchStart = function(event, view) {
+        //view.becomeKeyResponder();  // Becoming a key responder is independent of touchStart handling
+        Flame.set('mouseResponderView', undefined);
+        var handlingView = this._dispatch('touchStart', event, view);
+        if (handlingView) {
+            Flame.set('mouseResponderView', handlingView);
+        }
+        if (!event.touches) {
+            event.touches = event.originalEvent.touches;
+        }
+        Flame.setProperties({
+            isTouchStarted: true,
+            dragChecked: false,
+            touchStartPosition: { pageX: event.touches[0].pageX, pageY: event.touches[0].pageY }
+        });
+        return !handlingView;
+    };
+    eventManager.touchEnd = function(event, view) {
+        if (Flame.get('mouseResponderView') !== undefined) {
+            view = Flame.get('mouseResponderView');
+            Flame.set('mouseResponderView', undefined);
+        }
+        if (!event.touches) {
+            event.touches = event.originalEvent.touches;
+        }
+        Flame.set('isTouchStarted', false);
+        if (Flame.get('isDragging')) {
+            Flame.setProperties({
+                isTouchStarted: false,
+                isDragging: false,
+                touchStartPosition: null
+            });
+            this._dispatch('customDragEnd', event, view);
+            return false;
+        } else {
+            return !this._dispatch('touchEnd', event, view);
+        }
+    };
+    eventManager.touchCancel = function(event, view) {
+        if (Flame.get('mouseResponderView') !== undefined) {
+            view = Flame.get('mouseResponderView');
+            Flame.set('mouseResponderView', undefined);
+        }
+        if (!event.touches) {
+            event.touches = event.originalEvent.touches;
+        }
+        Flame.set('isTouchStarted', false);
+        if (Flame.get('isDragging')) {
+            Flame.setProperties({
+                isTouchStarted: false,
+                isDragging: false,
+                touchStartPosition: null
+            });
+            this._dispatch('customDragEnd', event, view);
+            return false;
+        } else {
+            return !this._dispatch('touchCancel', event, view);
+        }
+    };
+
+    eventManager.touchMove = function(event, view) {
+        if (Flame.get('mouseResponderView') !== undefined) {
+            view = Flame.get('mouseResponderView');
+        }
+        if (!event.touches) {
+            event.touches = event.originalEvent.touches;
+        }
+        if (Flame.get('isTouchStarted')) {
+            if (!Flame.get('dragChecked')) {
+                var touchStartPos = Flame.get('touchStartPosition'),
+                    touches = event.originalEvent.touches,
+                    thresholdExceeded = Math.abs(event.touches[0].pageX - touchStartPos.pageX) > 4 || Math.abs(event.touches[0].pageY - touchStartPos.pageY) > 4;
+                if (thresholdExceeded) {
+                    Flame.set('dragChecked', true);
+                    var dragHandlingView = this._dispatch('customDragStart', event, view);
+                    if (dragHandlingView) {
+                        Flame.set('mouseResponderView', dragHandlingView);
+                        Flame.set('isDragging', true);
+                    }
+                }
+            }
+            if (Flame.get('isDragging')) {
+                this._dispatch('customDragMove', event, view);
+                return false;
+            } else {
+                return !this._dispatch('touchMove', event, view);
+            }
+        } else {
+            return !this._dispatch('touchMove', event, view);
+        }
+    };
+} else {
+    eventManager.mouseDown = function(event, view) {
+        if (event.button !== 0) {
+            return true;
+        }
+        view.becomeKeyResponder();  // Becoming a key responder is independent of mouseDown handling
+        Flame.set('mouseResponderView', undefined);
+        var handlingView = this._dispatch('mouseDown', event, view);
+        if (handlingView) {
+            Flame.set('mouseResponderView', handlingView);
+        }
+        Flame.setProperties({
+            isMouseDown: true,
+            dragChecked: false,
+            mouseDownPosition: { pageX: event.pageX, pageY: event.pageY }
+        });
+        return !handlingView;
+    };
+
+    eventManager.mouseUp = function(event, view) {
+        if (hasTouch) return;
+        if (Flame.get('mouseResponderView') !== undefined) {
+            view = Flame.get('mouseResponderView');
+            Flame.set('mouseResponderView', undefined);
+        }
+        Flame.set('isMouseDown', false);
+        if (Flame.get('isDragging')) {
+            Flame.setProperties({
+                isMouseDown: false,
+                isDragging: false,
+                mouseDownPosition: null
+            });
+            this._dispatch('customDragEnd', event, view);
+            return false;
+        } else {
+            return !this._dispatch('mouseUp', event, view);
+        }
+    };
+
+    eventManager.mouseMove = function(event, view) {
+        if (Flame.get('mouseResponderView') !== undefined) {
+            view = Flame.get('mouseResponderView');
+        }
+
+        if (Flame.get('isMouseDown')) {
+            if (!Flame.get('dragChecked')) {
+                var mouseDownPos = Flame.get('mouseDownPosition'),
+                    thresholdExceeded = Math.abs(event.pageX - mouseDownPos.pageX) > 4 || Math.abs(event.pageY - mouseDownPos.pageY) > 4;
+                if (thresholdExceeded) {
+                    Flame.set('dragChecked', true);
+                    var dragHandlingView = this._dispatch('customDragStart', event, view);
+                    if (dragHandlingView) {
+                        Flame.set('mouseResponderView', dragHandlingView);
+                        Flame.set('isDragging', true);
+                    }
+                }
+            }
+            if (Flame.get('isDragging')) {
+                this._dispatch('customDragMove', event, view);
+                return false;
+            } else {
+                return !this._dispatch('mouseMove', event, view);
+            }
+        } else {
+            return !this._dispatch('mouseMove', event, view);
+        }
+    };
+}
+
 // This logic is needed so that the view that handled mouseDown/touchStart will receive mouseMoves and the eventual
 // mouseUp/touchEnd, even if the pointer no longer is on top of that view. Without this, you get inconsistencies with
 // buttons and all controls that handle mouse click / touch events. The sproutcore event dispatcher always first looks
@@ -172,195 +365,6 @@ Flame.EventManager = {
         Flame.keyResponderStack.pop();
     },
 
-    eventManager: {
-        mouseDown: function(event, view) {
-            if (event.button !== 0) {
-                return true;
-            }
-            view.becomeKeyResponder();  // Becoming a key responder is independent of mouseDown handling
-            Flame.set('mouseResponderView', undefined);
-            var handlingView = this._dispatch('mouseDown', event, view);
-            if (handlingView) {
-                Flame.set('mouseResponderView', handlingView);
-            }
-            Flame.setProperties({
-                isMouseDown: true,
-                dragChecked: false,
-                mouseDownPosition: { pageX: event.pageX, pageY: event.pageY }
-            });
-            return !handlingView;
-        },
-
-        mouseUp: function(event, view) {
-            if (Flame.get('mouseResponderView') !== undefined) {
-                view = Flame.get('mouseResponderView');
-                Flame.set('mouseResponderView', undefined);
-            }
-            Flame.set('isMouseDown', false);
-            if (Flame.get('isDragging')) {
-                Flame.setProperties({
-                    isMouseDown: false,
-                    isDragging: false,
-                    mouseDownPosition: null
-                });
-                this._dispatch('customDragEnd', event, view);
-                return false;
-            } else {
-                return !this._dispatch('mouseUp', event, view);
-            }
-        },
-
-        mouseMove: function(event, view) {
-            if (Flame.get('mouseResponderView') !== undefined) {
-                view = Flame.get('mouseResponderView');
-            }
-
-            if (Flame.get('isMouseDown')) {
-                if (!Flame.get('dragChecked')) {
-                    var mouseDownPos = Flame.get('mouseDownPosition'),
-                        thresholdExceeded = Math.abs(event.pageX - mouseDownPos.pageX) > 4 || Math.abs(event.pageY - mouseDownPos.pageY) > 4;
-                    if (thresholdExceeded) {
-                        Flame.set('dragChecked', true);
-                        var dragHandlingView = this._dispatch('customDragStart', event, view);
-                        if (dragHandlingView) {
-                            Flame.set('mouseResponderView', dragHandlingView);
-                            Flame.set('isDragging', true);
-                        }
-                    }
-                }
-                if (Flame.get('isDragging')) {
-                    this._dispatch('customDragMove', event, view);
-                    return false;
-                } else {
-                    return !this._dispatch('mouseMove', event, view);
-                }
-            } else {
-                return !this._dispatch('mouseMove', event, view);
-            }
-        },
-        touchStart: function(event, view) {
-            view.becomeKeyResponder();  // Becoming a key responder is independent of touchStart handling
-            Flame.set('mouseResponderView', undefined);
-            var handlingView = this._dispatch('touchStart', event, view);
-            if (handlingView) {
-                Flame.set('mouseResponderView', handlingView);
-            }
-            if (!event.touches) {
-                event.touches = event.originalEvent.touches;
-            }
-            Flame.setProperties({
-                isTouchStarted: true,
-                dragChecked: false,
-                touchStartPosition: { pageX: event.touches[0].pageX, pageY: event.touches[0].pageY }
-            });
-            return !handlingView;
-        },
-
-        touchEnd: function(event, view) {
-            if (Flame.get('mouseResponderView') !== undefined) {
-                view = Flame.get('mouseResponderView');
-                Flame.set('mouseResponderView', undefined);
-            }
-            if (!event.touches) {
-                event.touches = event.originalEvent.touches;
-            }
-            Flame.set('isTouchStarted', false);
-            if (Flame.get('isDragging')) {
-                Flame.setProperties({
-                    isTouchStarted: false,
-                    isDragging: false,
-                    touchStartPosition: null
-                });
-                this._dispatch('customDragEnd', event, view);
-                return false;
-            } else {
-                return !this._dispatch('touchEnd', event, view);
-            }
-        },
-
-        touchCancel: function(event, view) {
-            if (Flame.get('mouseResponderView') !== undefined) {
-                view = Flame.get('mouseResponderView');
-                Flame.set('mouseResponderView', undefined);
-            }
-            if (!event.touches) {
-                event.touches = event.originalEvent.touches;
-            }
-            Flame.set('isTouchStarted', false);
-            if (Flame.get('isDragging')) {
-                Flame.setProperties({
-                    isTouchStarted: false,
-                    isDragging: false,
-                    touchStartPosition: null
-                });
-                this._dispatch('customDragEnd', event, view);
-                return false;
-            } else {
-                return !this._dispatch('touchCancel', event, view);
-            }
-        },
-
-        touchMove: function(event, view) {
-            if (Flame.get('mouseResponderView') !== undefined) {
-                view = Flame.get('mouseResponderView');
-            }
-            if (!event.touches) {
-                event.touches = event.originalEvent.touches;
-            }
-            if (Flame.get('isTouchStarted')) {
-                if (!Flame.get('dragChecked')) {
-                    var touchStartPos = Flame.get('touchStartPosition'),
-                        touches = event.originalEvent.touches,
-                        thresholdExceeded = Math.abs(event.touches[0].pageX - touchStartPos.pageX) > 4 || Math.abs(event.touches[0].pageY - touchStartPos.pageY) > 4;
-                    if (thresholdExceeded) {
-                        Flame.set('dragChecked', true);
-                        var dragHandlingView = this._dispatch('customDragStart', event, view);
-                        if (dragHandlingView) {
-                            Flame.set('mouseResponderView', dragHandlingView);
-                            Flame.set('isDragging', true);
-                        }
-                    }
-                }
-                if (Flame.get('isDragging')) {
-                    this._dispatch('customDragMove', event, view);
-                    return false;
-                } else {
-                    return !this._dispatch('touchMove', event, view);
-                }
-            } else {
-                return !this._dispatch('touchMove', event, view);
-            }
-        },
-
-        keyDown: function(event) {
-            if (Flame.keyResponderStack.current() !== undefined && Flame.keyResponderStack.current().get('isVisible')) {
-                return Flame.keyResponderStack.current().handleKeyEvent(event, Flame.keyResponderStack.current());
-            }
-            return true;
-        },
-
-        keyPress: function(event) {
-            if (Flame.keyResponderStack.current() !== undefined && Flame.keyResponderStack.current().get('isVisible')) {
-                return Flame.keyResponderStack.current().handleKeyEvent(event, Flame.keyResponderStack.current());
-            }
-            return true;
-        },
-
-        // For the passed in view, calls the method with the name of the event, if defined. If that method
-        // returns true, returns the view. If the method returns false, recurses on the parent view. If no
-        // view handles the event, returns false.
-        _dispatch: function(eventName, event, view) {
-            if (window.FlameInspector) FlameInspector.logEvent(event, eventName, view);
-            var handler = view.get(eventName);
-            if (handler) {
-                var result = handler.call(view, event, view);
-                if (result === Flame.ALLOW_BROWSER_DEFAULT_HANDLING) return false;
-                else if (result) return view;
-            }
-            var parentView = view.get('parentView');
-            if (parentView) return this._dispatch(eventName, event, parentView);
-            else return false;
-        }
-    }
+    eventManager: eventManager
 };
 
