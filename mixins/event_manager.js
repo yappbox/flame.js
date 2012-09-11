@@ -166,7 +166,6 @@ var eventManager = {
 
 if ('ontouchstart' in window) {
     eventManager.touchStart = function(event, view) {
-        //view.becomeKeyResponder();  // Becoming a key responder is independent of touchStart handling
         Flame.set('mouseResponderView', undefined);
         var handlingView = this._dispatch('touchStart', event, view);
         if (handlingView) {
@@ -276,7 +275,6 @@ if ('ontouchstart' in window) {
     };
 
     eventManager.mouseUp = function(event, view) {
-        if (hasTouch) return;
         if (Flame.get('mouseResponderView') !== undefined) {
             view = Flame.get('mouseResponderView');
             Flame.set('mouseResponderView', undefined);
