@@ -165,14 +165,23 @@ var eventManager = {
 };
 
 if ('ontouchstart' in window) {
+    normalizeTouchEvent = function(event) {
+        if (!event.touches) {
+            event.touches = event.originalEvent.touches;
+        }
+        if (!event.pageX) {
+            event.pageX = event.originalEvent.pageX;
+        }
+        if (!event.pageY) {
+            event.pageY = event.originalEvent.pageY;
+        }
+    };
     eventManager.touchStart = function(event, view) {
         Flame.set('mouseResponderView', undefined);
+        normalizeTouchEvent(event);
         var handlingView = this._dispatch('touchStart', event, view);
         if (handlingView) {
             Flame.set('mouseResponderView', handlingView);
-        }
-        if (!event.touches) {
-            event.touches = event.originalEvent.touches;
         }
         Flame.setProperties({
             isTouchStarted: true,
@@ -186,9 +195,7 @@ if ('ontouchstart' in window) {
             view = Flame.get('mouseResponderView');
             Flame.set('mouseResponderView', undefined);
         }
-        if (!event.touches) {
-            event.touches = event.originalEvent.touches;
-        }
+        normalizeTouchEvent(event);
         Flame.set('isTouchStarted', false);
         if (Flame.get('isDragging')) {
             Flame.setProperties({
@@ -207,9 +214,7 @@ if ('ontouchstart' in window) {
             view = Flame.get('mouseResponderView');
             Flame.set('mouseResponderView', undefined);
         }
-        if (!event.touches) {
-            event.touches = event.originalEvent.touches;
-        }
+        normalizeTouchEvent(event);
         Flame.set('isTouchStarted', false);
         if (Flame.get('isDragging')) {
             Flame.setProperties({
@@ -228,13 +233,10 @@ if ('ontouchstart' in window) {
         if (Flame.get('mouseResponderView') !== undefined) {
             view = Flame.get('mouseResponderView');
         }
-        if (!event.touches) {
-            event.touches = event.originalEvent.touches;
-        }
+        normalizeTouchEvent(event);
         if (Flame.get('isTouchStarted')) {
             if (!Flame.get('dragChecked')) {
                 var touchStartPos = Flame.get('touchStartPosition'),
-                    touches = event.originalEvent.touches,
                     thresholdExceeded = Math.abs(event.touches[0].pageX - touchStartPos.pageX) > 4 || Math.abs(event.touches[0].pageY - touchStartPos.pageY) > 4;
                 if (thresholdExceeded) {
                     Flame.set('dragChecked', true);
