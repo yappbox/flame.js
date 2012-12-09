@@ -26,8 +26,8 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
     },
 
     itemViewClass: Flame.ListItemView.extend({
-        templateContext: function(key, value) {
-            return value !== undefined ? value : Ember.get(this, 'content');
+        templateContext: function(key) {
+            return Ember.get(this, 'content');
         }.property('content').cacheable(),
         templateBinding: "parentView.template",
         handlebars: "{{title}}"

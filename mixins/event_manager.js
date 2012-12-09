@@ -75,7 +75,7 @@ Ember.mixin(Flame, {
       that the previously focused view will re-gain the focus as soon as the modal element is closed. So if the
       previously focused view was e.g. in the middle of some edit operation, it shouldn't cancel that operation.
     */
-    keyResponderStack: Ember.Object.create({
+    keyResponderStack: Ember.Object.createWithMixins({
         _stack: [],
 
         // Observer-friendly version of getting current
