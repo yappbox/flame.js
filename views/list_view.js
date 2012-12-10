@@ -17,7 +17,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
     allowSelection: true,
     allowReordering: true,
     selection: undefined,
-    initialState: 'idle',
+    initialFlameState: 'idle',
     reorderDelegate: null,
     actOnSelect: false,
     init: function() {
@@ -178,7 +178,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
                 }
             }
 
-            this.gotoState('mouseButtonPressed');
+            this.gotoFlameState('mouseButtonPressed');
 
             // Have to always return true here because the user might start dragging, and if so, we need the mouseMove events.
             return true;
@@ -193,7 +193,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
     startReordering: function(dragHelper, event) {
         dragHelper.set('listView', this);
         this.set('dragHelper', dragHelper);
-        this.gotoState('reordering');
+        this.gotoFlameState('reordering');
         return this.mouseMove(event);  // Handle also this event in the new state
     },
 
@@ -205,7 +205,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
             var owner = this.get('owner');
             if (owner.get('dragHelper')) {  // Only enter reordering state if it was allowed, indicated by the presence of dragHelper
                 var dragHelper = owner.get('dragHelper');
-                this.gotoState('idle');
+                this.gotoFlameState('idle');
                 owner.startReordering(dragHelper, event);
             }
             return true;

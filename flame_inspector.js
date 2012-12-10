@@ -132,7 +132,7 @@ window.FlameInspector = Ember.Object.create({
 
 FlameInspector.RefView = Flame.LabelView.extend({
     classNames: ['flame-inspector-ref-view'],
-    classNameBindings: ['typeClass', 'currentState'],
+    classNameBindings: ['typeClass', 'currentFlameState'],
     defaultWidth: 60,
     defaultHeight: 15,
 
@@ -153,9 +153,9 @@ FlameInspector.RefView = Flame.LabelView.extend({
         }
     },
 
-    currentState: function() {
-        return this.get('ownerObject.currentState') === this.get('content');
-    }.property('ownerObject.currentState').cacheable(),
+    currentFlameState: function() {
+        return this.get('ownerObject.currentFlameState') === this.get('content');
+    }.property('ownerObject.currentFlameState').cacheable(),
 
     typeClass: function() {
         return 'flame-inspector-ref-view-'+this.get('type');
@@ -363,7 +363,7 @@ FlameInspector.InspectorController = Ember.Object.extend({
         {isIncluded: true, type: 'mouseUp'},
         {isIncluded: true, type: 'keyDown'},
         {isIncluded: true, type: 'keyUp'},
-        {isIncluded: true, type: 'gotoState'},
+        {isIncluded: true, type: 'gotoFlameState'},
         {isIncluded: true, type: 'propertyChange'}
     ],
 
@@ -406,7 +406,7 @@ FlameInspector.InspectorController = Ember.Object.extend({
         } else if (eventName.match(/^key/)) {
             info = 'which %@'.fmt(event.which);
             color = {keyDown: '#347', keyUp: '#569'}[eventName];
-        } else if (eventName === 'gotoState') {
+        } else if (eventName === 'gotoFlameState') {
             info = '%@ &rarr; %@'.fmt(event.oldState, event.newState);
             color = '#728';
         } else if (eventName === 'propertyChange') {
@@ -438,23 +438,23 @@ FlameInspector.InspectorController = Ember.Object.extend({
         }
     },
 
-    currentStateWillChange: function() {
+    currentFlameStateWillChange: function() {
         var object = this.get('inspectedObject');
-        var oldState = object && object.get && object.get('currentState');
+        var oldState = object && object.get && object.get('currentFlameState');
         if (oldState) {
-            this._oldState = oldState;  // Sneakily store here, used in currentStateDidChange
+            this._oldState = oldState;  // Sneakily store here, used in currentFlameStateWillChange
         }
-    },  //.observesBefore('inspectedObject.currentState'),
+    },  //.observesBefore('inspectedObject.currentFlameState'),
 
-    currentStateDidChange: function() {
+    currentFlameStateDidChange: function() {
         var object = this.get('inspectedObject');
-        var currentState = object && object.get && object.get('currentState');
-        if (currentState) {
+        var currentFlameState = object && object.get && object.get('currentFlameState');
+        if (currentFlameState) {
             var oldStateName = this._resolveStateName(object, this._oldState);
-            var newStateName = this._resolveStateName(object, currentState);
-            this.logEvent({oldState: oldStateName, newState: newStateName}, 'gotoState', object);
+            var newStateName = this._resolveStateName(object, currentFlameState);
+            this.logEvent({oldState: oldStateName, newState: newStateName}, 'gotoFlameState', object);
         }
-    },  //.observes('inspectedObject.currentState'),
+    },  //.observes('inspectedObject.currentFlameState'),
 
     _resolveStateName: function(view, state) {
         if (!Ember.none(state)) {
@@ -507,11 +507,11 @@ FlameInspector.InspectorController = Ember.Object.extend({
     }.observesBefore('inspectedObject'),
 
     inspectedObjectDidChange: function() {
-        // If we just define observers for currentState with .observes(...), we end up adding 'currentState' property to all objects
+        // If we just define observers for currentFlameState with .observes(...), we end up adding 'currentFlameState' property to all objects
         var object = this.get('inspectedObject');
-        if (object && object.get && object.get('currentState')) {
-            this._addObserverAndRegisterForRemoval(object, 'currentState', this, this.currentStateWillChange, 'before');
-            this._addObserverAndRegisterForRemoval(object, 'currentState', this, this.currentStateDidChange);
+        if (object && object.get && object.get('currentFlameState')) {
+            this._addObserverAndRegisterForRemoval(object, 'currentFlameState', this, this.currentFlameStateWillChange, 'before');
+            this._addObserverAndRegisterForRemoval(object, 'currentFlameState', this, this.currentFlameStateDidChange);
         }
     }.observes('inspectedObject'),
 
@@ -564,7 +564,7 @@ FlameInspector.InspectorController = Ember.Object.extend({
         if (!object.get) return null;  // No getter, no states
         var arr = [];
         for (var prop in object) {
-            if (prop !== '_super' && object.hasOwnProperty(prop) && prop !== 'currentState') {  // _super causes trouble
+            if (prop !== '_super' && object.hasOwnProperty(prop) && prop !== 'currentFlameState') {  // _super causes trouble
                 var value = object.get(prop);
                 if (value instanceof Flame.State) {
                     var item = Ember.Object.create({

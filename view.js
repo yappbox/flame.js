@@ -65,34 +65,35 @@ Flame.View = Ember.ContainerView.extend(Flame.LayoutSupport, Flame.EventManager,
     },
 
     render: function(buffer) {
-        this._renderElementAttributes(buffer);
         // If a template is defined, render that, otherwise use ContainerView's rendering (render childViews)
         var template = this.get('template');
         if (template) {
-            // Copied from Ember.View for now
-            var context = get(this, 'context');
-            var keywords = this.cloneKeywords();
+          var context = get(this, 'context');
+          var keywords = this.cloneKeywords();
+          var output;
 
-            var data = {
-              view: this,
-              buffer: buffer,
-              isRenderData: true,
-              keywords: keywords,
-              insideGroup: get(this, 'templateData.insideGroup')
-            };
+          var data = {
+            view: this,
+            buffer: buffer,
+            isRenderData: true,
+            keywords: keywords,
+            insideGroup: get(this, 'templateData.insideGroup')
+          };
 
-            // Invoke the template with the provided template context, which
-            // is the view's controller by default. A hash of data is also passed that provides
-            // the template with access to the view and render buffer.
+          // Invoke the template with the provided template context, which
+          // is the view's controller by default. A hash of data is also passed that provides
+          // the template with access to the view and render buffer.
 
-            Ember.assert('template must be a function. Did you mean to call Ember.Handlebars.compile("...") or specify templateName instead?', typeof template === 'function');
-            // The template should write directly to the render buffer instead
-            // of returning a string.
-            var output = template(context, { data: data });
+          Ember.assert('template must be a function. Did you mean to call Ember.Handlebars.compile("...") or specify templateName instead?', typeof template === 'function');
+          // The template should write directly to the render buffer instead
+          // of returning a string.
+          Ember.instrument('template.' + this.instrumentName,
+            { object: this.toString() },
+            function() { output = template(context, { data: data }); });
 
-            // If the template returned a string instead of writing to the buffer,
-            // push the string onto the buffer.
-            if (output !== undefined) { buffer.push(output); }
+          // If the template returned a string instead of writing to the buffer,
+          // push the string onto the buffer.
+          if (output !== undefined) { buffer.push(output); }
         } else {
             return this._super(buffer);
         }

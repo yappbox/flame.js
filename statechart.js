@@ -1,8 +1,8 @@
 /*jshint loopfunc: true */
 
 Flame.State = Ember.Object.extend({
-    gotoState: function(stateName) {
-        this.get('owner').gotoState(stateName);
+    gotoFlameState: function(stateName) {
+        this.get('owner').gotoFlameState(stateName);
     },
 
     $: function(args) {
@@ -15,16 +15,16 @@ Flame.State = Ember.Object.extend({
 Flame.State.reopenClass({
     gotoHandler: function(stateName, returnValue) {
         return function() {
-            this.gotoState(stateName);
+            this.gotoFlameState(stateName);
             return returnValue === undefined ? true : returnValue;
         };
     }
 });
 
 Flame.Statechart = {
-    initialState: null,
-    currentState: undefined,
-    _currentStateName: undefined,
+    initialFlameState: null,
+    currentFlameState: undefined,
+    _currentFlameStateName: undefined,
 
     init: function() {
         this._super();
@@ -38,8 +38,8 @@ Flame.Statechart = {
                 this._setupProxyMethods(this[key]);
             }
         }
-        Ember.assert("No initial state defined for statechart!", !Ember.none(this.get('initialState')));
-        this.gotoState(this.get('initialState'));
+        Ember.assert("No initial flame state defined for flame statechart!", !Ember.none(this.get('initialFlameState')));
+        this.gotoFlameState(this.get('initialFlameState'));
     },
 
     /**
@@ -55,27 +55,27 @@ Flame.Statechart = {
                     return function(args) {
                         args = Array.prototype.slice.call(arguments);
                         args.unshift(methodName);
-                        return this.invokeStateMethod.apply(this, args);
+                        return this.invokeFlameStateMethod.apply(this, args);
                     };
                 }(property);
             }
         }
     },
 
-    gotoState: function(stateName) {
-        Ember.assert("Cannot go to an undefined or null state!", !Ember.none(stateName));
-        var currentState = this.get('currentState');
+    gotoFlameState: function(stateName) {
+        Ember.assert("Cannot go to an undefined or null flame state!", !Ember.none(stateName));
+        var currentFlameState = this.get('currentFlameState');
         var newState = this.get(stateName);
         //do nothing if we are already in the state to go to
-        if (currentState === newState) {
+        if (currentFlameState === newState) {
             return;
         }
         if (!Ember.none(newState) && newState instanceof Flame.State) {
-            if (!Ember.none(currentState)) {
-                if (currentState.exitState) currentState.exitState();
+            if (!Ember.none(currentFlameState)) {
+                if (currentFlameState.exitState) currentFlameState.exitState();
             }
-            this._currentStateName = stateName;
-            this.set('currentState', newState);
+            this._currentFlameStateName = stateName;
+            this.set('currentFlameState', newState);
             if (newState.enterState) newState.enterState();
         } else {
             throw new Error("%@ is not a state!".fmt(stateName));
@@ -88,13 +88,13 @@ Flame.Statechart = {
      * @returns {Boolean} is this statechart currently in a state with the given name?
      */
     isCurrentlyIn: function(stateName) {
-        return this._currentStateName === stateName;
+        return this._currentFlameStateName === stateName;
     },
 
-    invokeStateMethod: function(methodName, args) {
+    invokeFlameStateMethod: function(methodName, args) {
         args = Array.prototype.slice.call(arguments); args.shift();
-        var state = this.get('currentState');
-        Ember.assert("Cannot invoke state method without having a current state!", !Ember.none(state) && state instanceof Flame.State);
+        var state = this.get('currentFlameState');
+        Ember.assert("Cannot invoke flame state method without having a current flame state!", !Ember.none(state) && state instanceof Flame.State);
         var method = state[methodName];
         if (Ember.typeOf(method) === "function") {
             return method.apply(state, args);

@@ -2,6 +2,7 @@
 Flame.LayoutSupport = {
     useAbsolutePosition: true,
     concatenatedProperties: ['displayProperties'],
+    classNames: ['flame-view'],
     layout: {left: 0, right: 0, top: 0, bottom: 0},
     defaultWidth: undefined,
     defaultHeight: undefined,
@@ -76,12 +77,12 @@ Flame.LayoutSupport = {
         var backgroundColor = this.get('backgroundColor');
         if (backgroundColor !== undefined) buffer.style('background-color', backgroundColor);
 
-        buffer.addClass('flame-view');
+        // buffer.addClass('flame-view');
     },
 
-    render: function(buffer) {
+    beforeRender: function(buffer) {
+        this._super(buffer);
         this._renderElementAttributes(buffer);
-        return this._super(buffer);
     },
 
     _resolveLayoutBindings: function(layout) {
