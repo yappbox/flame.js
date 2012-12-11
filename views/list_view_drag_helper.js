@@ -320,13 +320,13 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         if (domParent.css('overflow') === 'auto') {
             var topDiff = scrollTop - newTop;
             if (topDiff > 0) {
-                domParent.scrollTo('-=%@px'.fmt(Math.max(topDiff / 5, 1)));
+                domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
             }
             var bottomDiff = (newTop + height) - (scrollTop + parentHeight);
             if (bottomDiff > 0) {
-                domParent.scrollTo('+=%@px'.fmt(Math.max(bottomDiff / 5, 1)));
+                domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
             }
-            if (topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule an artificial mouseMove event to keep scrolling
+            if (topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule a display update to keep scrolling
                 var currentCounter = this.mouseMoveCounter;
                 Ember.run.next(this, function() {
                     Ember.run(this, function () {
