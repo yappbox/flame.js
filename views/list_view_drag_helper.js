@@ -117,6 +117,7 @@ Flame.ListViewDragHelper = Ember.Object.extend({
     // to match the current item position in a tree view.
     _updateCss: function() {
         var draggedElement = this.itemPath.getView().$();
+        if (!draggedElement) {return;}
         var rootOffsetLeft = this.clone.offsetParent().offset().left;
 
         this.clone.attr('class', draggedElement.attr('class') + ' is-dragged-clone');
@@ -190,6 +191,7 @@ Flame.ListViewDragHelper = Ember.Object.extend({
     _resolveNewPath: function(pageX, pageY) {
         var draggedView = this.itemPath.getView();
         var draggedElement = draggedView.$();
+        if (!draggedElement) {return;}
         var itemElements = this.get('listView').$().find(this.reorderCssClass);
         // XXX very ugly
         var currentElement = this.isTree() ? draggedElement.children(this.reorderCssClass).first() : draggedElement;
