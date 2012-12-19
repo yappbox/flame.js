@@ -88,11 +88,21 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
     // Moves the clone to match the current mouse position and moves the dragged item in the list/tree if needed
     updateDisplay: function(evt, scheduled) {
-        // This logic discards mouseMove events scheduled by the scrolling logic in case there's been a real mouseMove event since scheduled
-        if (scheduled === undefined) this.mouseMoveCounter++;
-        else if (scheduled < this.mouseMoveCounter) return false;
+        Ember.Logger.debug("scheduled:", scheduled, "this.mouseMoveCounter", this.mouseMoveCounter);
+
+        // This logic discards mouseMove events scheduled by the scrolling logic in case
+        // there's been a real mouseMove event since scheduled
+
+        if (scheduled === undefined) {
+            this.mouseMoveCounter++;
+        } else if (this.mouseMoveCounter > scheduled) {
+            return false;
+        }
 
         this._updateDraggingCloneAndScrollPosition(evt);
+
+        if (!this.get('listView.isDragging')) {return;}
+
         var newPath = this._resolveNewPath(evt.pageX, evt.pageY);
 
         if (newPath && !this.itemPath.equals(newPath)) {
