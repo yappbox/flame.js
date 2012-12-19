@@ -88,11 +88,19 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
     // Moves the clone to match the current mouse position and moves the dragged item in the list/tree if needed
     updateDisplay: function(evt, scheduled) {
-        // This logic discards mouseMove events scheduled by the scrolling logic in case there's been a real mouseMove event since scheduled
-        if (scheduled === undefined) this.mouseMoveCounter++;
-        else if (scheduled < this.mouseMoveCounter) return false;
+        // This logic discards mouseMove events scheduled by the scrolling logic in case
+        // there's been a real mouseMove event since scheduled
+
+        if (scheduled === undefined) {
+            this.mouseMoveCounter++;
+        } else if (this.mouseMoveCounter > scheduled) {
+            return false;
+        }
 
         this._updateDraggingCloneAndScrollPosition(evt);
+
+        if (!this.get('listView.isDragging')) {return;}
+
         var newPath = this._resolveNewPath(evt.pageX, evt.pageY);
 
         if (newPath && !this.itemPath.equals(newPath)) {
@@ -309,6 +317,8 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         var scrollTop = domParent.scrollTop();
         var parentHeight = domParent.innerHeight();
         var newTop = evt.pageY - this.yOffset - domParent.offset().top + scrollTop;
+        var newPath = this._resolveNewPath(evt.pageX, evt.pageY);
+        var forceRecurse = false;
 
         // Check top and bottom limits to disallow moving beyond the content area of the list view
         if (newTop < 0) newTop = 0;
@@ -320,15 +330,56 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
         // See if we should scroll the list view either up or down (don't scroll if overflow is not auto, can cause undesired tiny movement)
         if (domParent.css('overflow') === 'auto') {
+            var isDragging = this.get('listView.isDragging');
             var topDiff = scrollTop - newTop;
-            if (topDiff > 0) {
-                domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
-            }
             var bottomDiff = (newTop + height) - (scrollTop + parentHeight);
-            if (bottomDiff > 0) {
-                domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
+
+            if (isDragging) {
+                this.scrollingDownToScrollTop = null;
+                this.scrollingUpToScrollTop = null;
+
+                var listItemView = this._resolveNewPath(evt.pageX, evt.pageY).getView();
+                if (topDiff > 0) {
+                    // store scrollTop we need to get up to once we drop
+                    this.scrollingUpToScrollTop = scrollTop + listItemView.$().position().top;
+                    // scroll up
+                    domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
+                }
+                if (bottomDiff > 0) {
+                    // TODO - cache values that don't change
+                    var listHeight = this.get('listView').$().height();
+                    var itemHeight = listItemView.$().height();
+                    var itemBottom = itemHeight + listItemView.$().position().top;
+
+                    // store scrollTop we need to get down to once we drop
+                    this.scrollingDownToScrollTop = scrollTop + itemBottom - listHeight;
+                    // scroll down
+                    domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
+                }
+            } else { // No longer dragging... check target scrollTop values
+                if (this.scrollingUpToScrollTop !== null) {
+                    // keep scrolling up until we hit our target scrollTop
+                    if (scrollTop > this.scrollingUpToScrollTop) {
+                        domParent.scrollTop(scrollTop - 5); // constant scroll speed
+                        forceRecurse = true; // topDiff may not be > 0
+                    } else {
+                        this.scrollingUpToScrollTop = null;
+                        return;
+                    }
+                }
+
+                if (this.scrollingDownToScrollTop !== null) {
+                    if (scrollTop < this.scrollingDownToScrollTop) {
+                        domParent.scrollTop(scrollTop + 5); // constant scroll speed
+                        forceRecurse = true; // bottomDiff may not be > 0
+                    } else {
+                        this.scrollingDownToScrollTop = null;
+                        return;
+                    }
+                }
             }
-            if (topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule a display update to keep scrolling
+
+            if (forceRecurse || topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule a display update to keep scrolling
                 var currentCounter = this.mouseMoveCounter;
                 Ember.run.next(this, function() {
                     Ember.run(this, function () {
