@@ -360,8 +360,8 @@ Flame.ListViewDragHelper = Ember.Object.extend({
                 if (this.scrollingUpToScrollTop !== null) {
                     // keep scrolling up until we hit our target scrollTop
                     if (scrollTop > this.scrollingUpToScrollTop) {
-                        Ember.Logger.debug("Math.max(topDiff / 5, 1)", Math.max(topDiff / 5, 1))
-                        domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
+                        domParent.scrollTop(scrollTop - 5); // constant scroll speed
+                        forceRecurse = true; // topDiff may not be > 0
                     } else {
                         this.scrollingUpToScrollTop = null;
                         return;
@@ -370,8 +370,7 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
                 if (this.scrollingDownToScrollTop !== null) {
                     if (scrollTop < this.scrollingDownToScrollTop) {
-                        Ember.Logger.debug(Math.max(bottomDiff / 5, 5), "Math.max(bottomDiff / 5, 5)");
-                        domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 5));
+                        domParent.scrollTop(scrollTop + 5); // constant scroll speed
                         forceRecurse = true; // bottomDiff may not be > 0
                     } else {
                         this.scrollingDownToScrollTop = null;
