@@ -214,6 +214,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
 
     reordering: Flame.State.extend({
         mouseMove: function(evt, view, scheduled) {
+
             return this.get('owner').get('dragHelper').updateDisplay(evt);
         },
 

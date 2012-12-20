@@ -88,8 +88,6 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
     // Moves the clone to match the current mouse position and moves the dragged item in the list/tree if needed
     updateDisplay: function(evt, scheduled) {
-        Ember.Logger.debug("scheduled:", scheduled, "this.mouseMoveCounter", this.mouseMoveCounter);
-
         // This logic discards mouseMove events scheduled by the scrolling logic in case
         // there's been a real mouseMove event since scheduled
 
@@ -319,6 +317,9 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         var scrollTop = domParent.scrollTop();
         var parentHeight = domParent.innerHeight();
         var newTop = evt.pageY - this.yOffset - domParent.offset().top + scrollTop;
+        //console.log(evt.pageY, this.yOffset, domParent.offset().top, scrollTop, newTop);
+
+        var newPath = this._resolveNewPath(evt.pageX, evt.pageY);
 
         // Check top and bottom limits to disallow moving beyond the content area of the list view
         if (newTop < 0) newTop = 0;
@@ -330,14 +331,61 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
         // See if we should scroll the list view either up or down (don't scroll if overflow is not auto, can cause undesired tiny movement)
         if (domParent.css('overflow') === 'auto') {
+
+            var isDragging = this.get('listView.isDragging');
+
+
             var topDiff = scrollTop - newTop;
-            if (topDiff > 0) {
-                domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
-            }
             var bottomDiff = (newTop + height) - (scrollTop + parentHeight);
-            if (bottomDiff > 0) {
-                domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
+
+            //console.log("(newTop + height)", newTop + height, "(scrollTop + parentHeight)", (scrollTop + parentHeight));
+
+            if (isDragging) {
+                var listItemView = this._resolveNewPath(evt.pageX, evt.pageY).getView();
+                if (topDiff > 0) {
+                    // while we are dragging, we want to make sure we at least get to the scroll so the top
+                    // of the non-clone list item is in view
+                    this.lowerTargetScrollTop = scrollTop + listItemView.$().position().top;
+
+                    // while dragging, scroll up regardless
+                    domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
+                }
+                if (bottomDiff > 0) {
+                    // while we are dragging, we want to make sure we at least get to the scroll so the top
+                    // of the non-clone list item is in view
+                    // TODO --- figure out what maxTargetScrollTop should be
+                    var listHeight = this.get('listView').$().height();
+                    var itemHeight = listItemView.$().height();
+                    var itemBottom = itemHeight + listItemView.$().position().top;
+                    this.higherTargetScrollTop = scrollTop + itemBottom - listHeight;
+
+                    // while dragging, scroll down regardless
+                    domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
+                }
+            } else {
+                if (topDiff > 0) {
+                    // no longer dragging? either keep going until we hit the min, or stop
+                    if (scrollTop > this.lowerTargetScrollTop) {
+                        domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
+                    } else {
+                        topDiff = 0; // stops recursion (just return?)
+                    }
+                }
+                console.log("(scrollTop)", scrollTop, "(this.higherTargetScrollTop)", (this.higherTargetScrollTop));
+                //if (bottomDiff > 0) {
+                    // no longer dragging? either keep going until we hit the max, or stop
+                    if (scrollTop < this.higherTargetScrollTop) {
+                        console.log("scrollTop<higher");
+                        domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
+                        bottomDiff = 1; // recurse hack
+                    } else {
+                        console.log("scrollTop>higher");
+                        bottomDiff = 0; // stops recursion (just return?)
+                    }
+                //}
             }
+
+
             if (topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule a display update to keep scrolling
                 var currentCounter = this.mouseMoveCounter;
                 Ember.run.next(this, function() {
