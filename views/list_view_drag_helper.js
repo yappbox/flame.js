@@ -317,9 +317,8 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         var scrollTop = domParent.scrollTop();
         var parentHeight = domParent.innerHeight();
         var newTop = evt.pageY - this.yOffset - domParent.offset().top + scrollTop;
-        //console.log(evt.pageY, this.yOffset, domParent.offset().top, scrollTop, newTop);
-
         var newPath = this._resolveNewPath(evt.pageX, evt.pageY);
+        var forceRecurse = false;
 
         // Check top and bottom limits to disallow moving beyond the content area of the list view
         if (newTop < 0) newTop = 0;
@@ -331,62 +330,57 @@ Flame.ListViewDragHelper = Ember.Object.extend({
 
         // See if we should scroll the list view either up or down (don't scroll if overflow is not auto, can cause undesired tiny movement)
         if (domParent.css('overflow') === 'auto') {
-
             var isDragging = this.get('listView.isDragging');
-
-
             var topDiff = scrollTop - newTop;
             var bottomDiff = (newTop + height) - (scrollTop + parentHeight);
 
-            //console.log("(newTop + height)", newTop + height, "(scrollTop + parentHeight)", (scrollTop + parentHeight));
-
             if (isDragging) {
+                this.scrollingDownToScrollTop = null;
+                this.scrollingUpToScrollTop = null;
+
                 var listItemView = this._resolveNewPath(evt.pageX, evt.pageY).getView();
                 if (topDiff > 0) {
-                    // while we are dragging, we want to make sure we at least get to the scroll so the top
-                    // of the non-clone list item is in view
-                    this.lowerTargetScrollTop = scrollTop + listItemView.$().position().top;
-
-                    // while dragging, scroll up regardless
+                    // store scrollTop we need to get up to once we drop
+                    this.scrollingUpToScrollTop = scrollTop + listItemView.$().position().top;
+                    // scroll up
                     domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
                 }
                 if (bottomDiff > 0) {
-                    // while we are dragging, we want to make sure we at least get to the scroll so the top
-                    // of the non-clone list item is in view
-                    // TODO --- figure out what maxTargetScrollTop should be
+                    // TODO - cache values that don't change
                     var listHeight = this.get('listView').$().height();
                     var itemHeight = listItemView.$().height();
                     var itemBottom = itemHeight + listItemView.$().position().top;
-                    this.higherTargetScrollTop = scrollTop + itemBottom - listHeight;
 
-                    // while dragging, scroll down regardless
+                    // store scrollTop we need to get down to once we drop
+                    this.scrollingDownToScrollTop = scrollTop + itemBottom - listHeight;
+                    // scroll down
                     domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
                 }
-            } else {
-                if (topDiff > 0) {
-                    // no longer dragging? either keep going until we hit the min, or stop
-                    if (scrollTop > this.lowerTargetScrollTop) {
+            } else { // No longer dragging... check target scrollTop values
+                if (this.scrollingUpToScrollTop !== null) {
+                    // keep scrolling up until we hit our target scrollTop
+                    if (scrollTop > this.scrollingUpToScrollTop) {
+                        Ember.Logger.debug("Math.max(topDiff / 5, 1)", Math.max(topDiff / 5, 1))
                         domParent.scrollTop(scrollTop - Math.max(topDiff / 5, 1));
                     } else {
-                        topDiff = 0; // stops recursion (just return?)
+                        this.scrollingUpToScrollTop = null;
+                        return;
                     }
                 }
-                console.log("(scrollTop)", scrollTop, "(this.higherTargetScrollTop)", (this.higherTargetScrollTop));
-                //if (bottomDiff > 0) {
-                    // no longer dragging? either keep going until we hit the max, or stop
-                    if (scrollTop < this.higherTargetScrollTop) {
-                        console.log("scrollTop<higher");
-                        domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 1));
-                        bottomDiff = 1; // recurse hack
+
+                if (this.scrollingDownToScrollTop !== null) {
+                    if (scrollTop < this.scrollingDownToScrollTop) {
+                        Ember.Logger.debug(Math.max(bottomDiff / 5, 5), "Math.max(bottomDiff / 5, 5)");
+                        domParent.scrollTop(scrollTop + Math.max(bottomDiff / 5, 5));
+                        forceRecurse = true; // bottomDiff may not be > 0
                     } else {
-                        console.log("scrollTop>higher");
-                        bottomDiff = 0; // stops recursion (just return?)
+                        this.scrollingDownToScrollTop = null;
+                        return;
                     }
-                //}
+                }
             }
 
-
-            if (topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule a display update to keep scrolling
+            if (forceRecurse || topDiff > 0 || bottomDiff > 0) {  // If scrolled, schedule a display update to keep scrolling
                 var currentCounter = this.mouseMoveCounter;
                 Ember.run.next(this, function() {
                     Ember.run(this, function () {
