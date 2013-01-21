@@ -1,6 +1,79 @@
 //= require ./collection_view
 //= require ./list_view_drag_helper
 
+Flame.ListViewIdleState = Flame.State.extend({
+    moveUp: function() { return this.get('owner').changeSelection(-1); },
+    moveDown: function() { return this.get('owner').changeSelection(1); },
+
+    mouseDownOnItem: function(itemIndex, evt) {
+        var owner = this.get('owner');
+        owner.selectIndex(itemIndex);
+
+        // Store some information in case user starts dragging (i.e. moves mouse with the button pressed down),
+        // but only if reordering is generally allowed for this list view and for the particular item
+        if (owner.get('allowReordering') && itemIndex !== undefined) {
+            if (owner.allowReorderingItem(itemIndex)) {
+                //console.log('Drag started on %s, dragging %s items', itemIndex, itemCount);
+                var childView = owner.get('childViews').objectAt(itemIndex);
+                owner.set('dragHelper', Flame.ListViewDragHelper.create({
+                    listView: owner,
+                    lastPageX: evt.pageX,
+                    yOffset: evt.pageY - childView.$().offset().top,
+                    itemPath: [itemIndex]
+                }));
+            }
+        }
+
+        this.gotoFlameState('mouseButtonPressed');
+
+        // Have to always return true here because the user might start dragging, and if so, we need the mouseMove events.
+        return true;
+    },
+
+    enterState: function() {
+        this.get('owner').set('dragHelper', undefined);  // In case dragging was allowed but not started, clear the drag data
+    }
+});
+
+Flame.ListViewReorderingState = Flame.State.extend({
+    mouseMove: function(evt, view, scheduled) {
+
+        return this.get('owner').get('dragHelper').updateDisplay(evt);
+    },
+
+    mouseUp: Flame.State.gotoHandler('idle'),
+
+    // Start reorder drag operation
+    enterState: function() {
+        var owner = this.get('owner');
+        owner.get('dragHelper').initReorder();
+        owner.set('isDragging', true);
+    },
+
+    // When exiting the reorder state, we need to hide the dragged clone and restore the look of the dragged child view
+    exitState: function() {
+        var owner = this.get('owner');
+        owner.get('dragHelper').finishReorder();
+        owner.set('dragHelper', undefined);
+        owner.set('isDragging', false);
+    }
+});
+
+Flame.ListViewMouseButtonPressedState = Flame.State.extend({
+    mouseUpOnItem: Flame.State.gotoHandler('idle'),
+    mouseUp: Flame.State.gotoHandler('idle'),
+
+    mouseMove: function(event) {
+        var owner = this.get('owner');
+        if (owner.get('dragHelper')) {  // Only enter reordering state if it was allowed, indicated by the presence of dragHelper
+            var dragHelper = owner.get('dragHelper');
+            this.gotoFlameState('idle');
+            owner.startReordering(dragHelper, event);
+        }
+        return true;
+    }
+});
+
 /*
   Displays a list of items. Allows reordering if allowReordering is true.
 
@@ -155,40 +228,6 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
         return true;
     },
 
-    idle: Flame.State.extend({
-        moveUp: function() { return this.get('owner').changeSelection(-1); },
-        moveDown: function() { return this.get('owner').changeSelection(1); },
-
-        mouseDownOnItem: function(itemIndex, evt) {
-            var owner = this.get('owner');
-            owner.selectIndex(itemIndex);
-
-            // Store some information in case user starts dragging (i.e. moves mouse with the button pressed down),
-            // but only if reordering is generally allowed for this list view and for the particular item
-            if (owner.get('allowReordering') && itemIndex !== undefined) {
-                if (owner.allowReorderingItem(itemIndex)) {
-                    //console.log('Drag started on %s, dragging %s items', itemIndex, itemCount);
-                    var childView = owner.get('childViews').objectAt(itemIndex);
-                    owner.set('dragHelper', Flame.ListViewDragHelper.create({
-                        listView: owner,
-                        lastPageX: evt.pageX,
-                        yOffset: evt.pageY - childView.$().offset().top,
-                        itemPath: [itemIndex]
-                    }));
-                }
-            }
-
-            this.gotoFlameState('mouseButtonPressed');
-
-            // Have to always return true here because the user might start dragging, and if so, we need the mouseMove events.
-            return true;
-        },
-
-        enterState: function() {
-            this.get('owner').set('dragHelper', undefined);  // In case dragging was allowed but not started, clear the drag data
-        }
-    }),
-
     // This is here so that we can override the behaviour in tree views
     startReordering: function(dragHelper, event) {
         dragHelper.set('listView', this);
@@ -197,43 +236,9 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
         return this.mouseMove(event);  // Handle also this event in the new state
     },
 
-    mouseButtonPressed: Flame.State.extend({
-        mouseUpOnItem: Flame.State.gotoHandler('idle'),
-        mouseUp: Flame.State.gotoHandler('idle'),
+    idle: Flame.ListViewIdleState,
 
-        mouseMove: function(event) {
-            var owner = this.get('owner');
-            if (owner.get('dragHelper')) {  // Only enter reordering state if it was allowed, indicated by the presence of dragHelper
-                var dragHelper = owner.get('dragHelper');
-                this.gotoFlameState('idle');
-                owner.startReordering(dragHelper, event);
-            }
-            return true;
-        }
-    }),
+    mouseButtonPressed: Flame.ListViewMouseButtonPressedState,
 
-    reordering: Flame.State.extend({
-        mouseMove: function(evt, view, scheduled) {
-
-            return this.get('owner').get('dragHelper').updateDisplay(evt);
-        },
-
-        mouseUp: Flame.State.gotoHandler('idle'),
-
-        // Start reorder drag operation
-        enterState: function() {
-            var owner = this.get('owner');
-            owner.get('dragHelper').initReorder();
-            owner.set('isDragging', true);
-        },
-
-        // When exiting the reorder state, we need to hide the dragged clone and restore the look of the dragged child view
-        exitState: function() {
-            var owner = this.get('owner');
-            owner.get('dragHelper').finishReorder();
-            owner.set('dragHelper', undefined);
-            owner.set('isDragging', false);
-        }
-    })
-
+    reordering: Flame.ListViewReorderingState
 });
