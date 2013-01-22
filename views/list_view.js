@@ -56,6 +56,13 @@ Flame.ListViewReorderingState = Flame.State.extend({
         owner.get('dragHelper').finishReorder();
         owner.set('dragHelper', undefined);
         owner.set('isDragging', false);
+    },
+
+    touchEnd: Flame.State.gotoHandler('idle'),
+
+    touchMove: function(event) {
+        this.mouseMove(Flame.EventManager.eventManager.normalizeTouchEvent(event));
+        return true;
     }
 });
 
@@ -70,6 +77,13 @@ Flame.ListViewMouseButtonPressedState = Flame.State.extend({
             this.gotoFlameState('idle');
             owner.startReordering(dragHelper, event);
         }
+        return true;
+    },
+
+    touchEnd: Flame.State.gotoHandler('idle'),
+
+    touchMove: function(event) {
+        this.mouseMove(Flame.EventManager.eventManager.normalizeTouchEvent(event));
         return true;
     }
 });
