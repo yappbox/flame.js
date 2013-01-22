@@ -175,7 +175,21 @@ if ('ontouchstart' in window) {
         if (!event.pageY) {
             event.pageY = event.originalEvent.pageY;
         }
+        if (!event.screenX) {
+            event.screenX = event.originalEvent.screenX;
+        }
+        if (!event.screenY) {
+            event.screenY = event.originalEvent.screenY;
+        }
+        if (!event.clientX) {
+            event.clientX = event.originalEvent.clientX;
+        }
+        if (!event.clientY) {
+            event.clientY = event.originalEvent.clientY;
+        }
+        return event;
     };
+
     eventManager.touchStart = function(event, view) {
         Flame.set('mouseResponderView', undefined);
         normalizeTouchEvent(event);
