@@ -45,8 +45,10 @@ Flame.ListItemView = Flame.View.extend({
 
     touchStart: function(evt) {
         // The same caveats apply as in mouseDown: store the parentView and hand the event up to it
-        this._parentViewOnMouseDown = this.get('parentView');
-        return this._parentViewOnMouseDown.mouseDownOnItem(this.get('contentIndex'), evt);
+        if (this.get('parentView.allowTouchDragging')) {
+            this._parentViewOnMouseDown = this.get('parentView');
+            return this._parentViewOnMouseDown.mouseDownOnItem(this.get('contentIndex'), evt);
+        }
     },
 
     touchEnd: function(evt) {

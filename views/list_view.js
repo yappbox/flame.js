@@ -103,6 +103,7 @@ Flame.ListView = Flame.CollectionView.extend(Flame.Statechart, {
     acceptsKeyResponder: true,
     allowSelection: true,
     allowReordering: true,
+    allowTouchDragging: false,
     selection: undefined,
     initialFlameState: 'idle',
     reorderDelegate: null,
