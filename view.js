@@ -52,7 +52,7 @@ Flame.View = Ember.ContainerView.extend(Flame.LayoutSupport, Flame.EventManager,
         // when we're already in the middle of a render, crashing with error 'assertion failed: You need to provide an
         // object and key to `get`' (happens because parent buffer in a render buffer is null).
         if (this.get('template')) {
-            this.set('states', Ember.View.states);  // Use states from Ember.View to remedy the problem
+            //this.set('states', Ember.View.states);  // Use states from Ember.View to remedy the problem
         }
 
         // Add observers for displayProperties so that the view gets rerendered if any of them changes

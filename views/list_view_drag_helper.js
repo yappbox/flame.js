@@ -153,14 +153,13 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         var targetElement = targetView.$();
         var targetParent = target.position === 'i' ? target.getNestedListView() : targetView.get('parentView');
         var targetContent = targetParent.get('content');
-        var targetChildViews = targetParent.get('childViews');
 
         // First remove the view, the content item and the DOM element from their current parent.
         // If moving inside the same parent, use a special startMoving+endMoving API provided by
         // Flame.SortingArrayProxy to protect against non-modifiable arrays (the sort property is
         // still updated).
         if (sourceContent === targetContent && sourceContent.startMoving) sourceContent.startMoving();
-        sourceParent.get('childViews').removeObject(view);
+        sourceParent.removeObject(view);
         sourceContent.removeObject(contentItem);
         sourceParent._updateContentIndexes();
         element.detach();
@@ -169,15 +168,15 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         var targetIndex = targetView.get('contentIndex');
         if (target.position === 'b') {
             element.insertBefore(targetElement);
-            targetChildViews.insertAt(targetIndex, view);
+            targetParent.insertAt(targetIndex, view);
             targetContent.insertAt(targetIndex, contentItem);
         } else if (target.position === 'a') {
             element.insertAfter(targetElement);
-            targetChildViews.insertAt(targetIndex+1, view);
+            targetParent.insertAt(targetIndex+1, view);
             targetContent.insertAt(targetIndex+1, contentItem);
         } else if (target.position === 'i') {
             targetElement.find('.flame-list-view').first().prepend(element);
-            targetChildViews.insertAt(0, view);
+            targetParent.insertAt(0, view);
             targetContent.insertAt(0, contentItem);
         } else throw 'Invalid insert position '+target.position;
 
@@ -259,7 +258,7 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         // If as the last item of a nested list, moving left moves one level up (placing immediately after current parent), OR
         // if the current level isn't valid, try and see if there is a valid drop one level up
         while ((xDiff < -xStep || this._pathInvalid(draggedView, path)) && (path.position === 'a' || this.itemPath.equals(path)) &&
-               path.array.length > 1 && targetView.get('contentIndex') === targetView.get('parentView.childViews.length') - 1) {
+               path.array.length > 1 && targetView.get('contentIndex') === targetView.get('parentView.length') - 1) {
             xDiff += xStep;
             path = path.up();
             targetView = path.getView();
@@ -296,7 +295,7 @@ Flame.ListViewDragHelper = Ember.Object.extend({
     },
 
     _getPrecedingView: function(view) {
-        return view.get('contentIndex') > 0 ? view.get('parentView.childViews').objectAt(view.get('contentIndex') - 1) : undefined;
+        return view.get('contentIndex') > 0 ? view.get('parentView').objectAt(view.get('contentIndex') - 1) : undefined;
     },
 
     _resolvePath: function(view) {
@@ -405,7 +404,7 @@ Flame.ListViewDragHelper.Path = Ember.Object.extend({
         var view, i, len = this.array.length, listView = this.root;
         for (i = 0; i < len; i++) {
             var index = this.array[i];
-            view = listView.get("childViews").objectAt(index);
+            view = listView.objectAt(index);
             if (i < len - 1) {
                 listView = view.get('childListView');
             }
