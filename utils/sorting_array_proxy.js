@@ -29,6 +29,7 @@
  */
 Flame.SortingArrayProxy = Ember.ArrayProxy.extend({
     sortKey: 'position',
+    sortAscending: true,
     parent: null,
     _suppressObservers: false,
 
@@ -75,10 +76,18 @@ Flame.SortingArrayProxy = Ember.ArrayProxy.extend({
 
         var content = this.get('content');
         var sortKey = this.get('sortKey');
+        var sortAscending = this.get('sortAscending');
         this._withObserversSuppressed(function() {
-            content.forEach(function(item, i) {
-                Ember.set(item, sortKey, i);
-            });
+            if (sortAscending) {
+                content.forEach(function(item, i) {
+                    Ember.set(item, sortKey, i);
+                });
+            } else {
+                content.forEach(function(item, i) {
+                    Ember.set(item, sortKey, (content.length - 1) - i);
+                });
+            }
+
         });
     },
 
@@ -213,11 +222,18 @@ Flame.SortingArrayProxy = Ember.ArrayProxy.extend({
         if (addCount > 0) {
             var sortKey = this.get('sortKey');
             var source = this.get('source');
+            var sortAscending = this.get('sortAscending');
             var self = this;
             this._withObserversSuppressed(function() {
-                content.forEach(function(item, i) {
-                    Ember.set(item, sortKey, i);
-                });
+                if (sortAscending) {
+                    content.forEach(function(item, i) {
+                        Ember.set(item, sortKey, i);
+                    });
+                } else {
+                    content.forEach(function(item, i) {
+                        Ember.set(item, sortKey, (content.length - 1) - i);
+                    });
+                }
 
                 for (var i = start; i < start + addCount; i++) {
                     var addedItem = content.objectAt(i);
@@ -241,9 +257,15 @@ Flame.SortingArrayProxy = Ember.ArrayProxy.extend({
 
     _sort: function(array) {
         var sortKey = this.get('sortKey');
-        array.sort(function(o1, o2) {
-            return Ember.compare(Ember.get(o1, sortKey), Ember.get(o2, sortKey));
-        });
+        if (this.get('sortAscending')) {
+            array.sort(function(o1, o2) {
+                return Ember.compare(Ember.get(o1, sortKey), Ember.get(o2, sortKey));
+            });
+        } else {
+            array.sort(function(o1, o2) {
+                return Ember.compare(Ember.get(o2, sortKey), Ember.get(o1, sortKey));
+            });
+        }
     },
 
     _withObserversSuppressed: function(func) {
