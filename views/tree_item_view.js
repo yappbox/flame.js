@@ -104,7 +104,7 @@ Flame.TreeItemView = Flame.ListItemView.extend({
     }.property("showsubTree").cacheable(),
 
     hasChildren: function() {
-        return !Ember.none(this.get('content.treeItemChildren'));
+        return !Ember.isNone(this.get('content.treeItemChildren'));
     }.property('content.treeItemChildren'),
 
     mouseUp: function() {
