@@ -69,7 +69,7 @@ Flame.ListViewDragHelper = Ember.Object.extend({
         clone.addClass('is-dragged-clone');
         clone.appendTo(this.get('listView').$());
 
-        clone.css('opacity', 0.8);
+        clone.css('opacity', 0.9);
 
         this.set('clone', clone);
         this._updateCss();
