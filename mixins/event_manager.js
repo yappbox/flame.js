@@ -33,7 +33,8 @@ var eventHandlers = {
 };
 
 Ember.View.reopen(eventHandlers);
-Ember.TextSupport.reopen(eventHandlers);
+// This was preventing bindings from firing on each keystroke. LM/DZ
+// Ember.TextSupport.reopen(eventHandlers);
 
 Flame.KEY_BINDINGS = {
     8: 'deleteBackward',
