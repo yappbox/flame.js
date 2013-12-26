@@ -81,8 +81,8 @@ Flame.LayoutSupport = {
     },
 
     beforeRender: function(buffer) {
-        this._super(buffer);
         this._renderElementAttributes(buffer);
+        this._super(buffer);
     },
 
     _resolveLayoutBindings: function(layout) {
