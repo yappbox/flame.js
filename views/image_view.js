@@ -3,5 +3,5 @@ Flame.ImageView = Flame.View.extend({
         return { value: this.get('value') };
     }.property('value'),
 
-    handlebars: '<img {{bindAttr src="value"}}>'
+    handlebars: '<img {{bind-attr src="value"}}>'
 });
