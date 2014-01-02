@@ -110,34 +110,6 @@ Flame.View = Ember.ContainerView.extend(Flame.LayoutSupport, Flame.EventManager,
         }
     }.property('templateName', 'handlebars').cacheable(),
 
-    // For Ember 1.0, removeChild on ContainerViews expects there not to be any SimpleHandlebarsView children
-    // Flame.View extends ContainerView, but it allows templates, so there will be SimpleHandlebarsViews children.
-    // This is the Ember.View implementation of removeChild for when there is a template.
-    removeChild: function(view) {
-        if (!this.get('template')) {
-            // no template - use Ember.ContainerView's `removeChild`
-            return this._super(view);
-        }
-        // else there is a template - use Ember.View's `removeChild`
-
-        // If we're destroying, the entire subtree will be
-        // freed, and the DOM will be handled separately,
-        // so no need to mess with childViews.
-        if (this.isDestroying) { return; }
-
-        // update parent node
-        set(view, '_parentView', null);
-
-        // remove view from childViews array.
-        var childViews = this._childViews;
-
-        Ember.EnumerableUtils.removeObject(childViews, view);
-
-        this.propertyDidChange('childViews'); // HUH?! what happened to will change?
-
-        return this;
-    },
-
     // Compiles given handlebars template, with caching to make it perform better. (Called repetitively e.g.
     // when rendering a list view whose item views use a template.)
     _compileTemplate: function(template) {
