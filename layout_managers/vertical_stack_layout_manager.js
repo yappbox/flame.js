@@ -26,7 +26,7 @@ Flame.VerticalStackLayoutManager = Flame.LayoutManager.extend({
         var views = view.get('childViews').filter(function(childView) {
             return childView.get('ignoreLayoutManager') !== true &&
                 (childView.get('isVisible') || childView.get('isVisible') === null) && // isVisible is initially null
-                childView.get('layout');
+                childView.get('layout'); 
         });
         var len = views.get('length');
 
